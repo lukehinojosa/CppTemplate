@@ -141,19 +141,19 @@ namespace
         int added = 0;
         for (const Vector3& v : cornerHull.vertices)
         {
+            // Corners a little apart are kept with their gap as a negative depth, so a lifting corner still holds
             const real depth = faceOffset - v * faceOutward;
-            if (depth < -FACE_SLACK * (real)0.1 || !insideFace(ownerHull.vertices, face, faceOutward, v, FACE_SLACK))
+            if (depth < -FACE_SLACK || !insideFace(ownerHull.vertices, face, faceOutward, v, FACE_SLACK))
             {
                 continue;
             }
-            const real clamped = depth > 0 ? depth : 0;
             // Halfway between the corner and the face it's through
-            const Vector3 point = v + normal * (towardOwner * clamped * (real)0.5);
+            const Vector3 point = v + normal * (towardOwner * depth * (real)0.5);
             if (nearExisting(first, already + added, point))
             {
                 continue;
             }
-            if (data->addContact(bodyA, bodyB, point, normal, clamped) == nullptr)
+            if (data->addContact(bodyA, bodyB, point, normal, depth) == nullptr)
             {
                 break;
             }
@@ -179,13 +179,15 @@ namespace
         return best;
     }
 
-    // A face contact from corners of each shape through the other's face, so a small shape on a big face gets all
-    // its corners whichever face the test chose.
-    int fillHullFace(const ConvexCollider& one, const WorldHull& oneHull, const ConvexCollider& two, const WorldHull& twoHull, int face,
+    // A face contact from corners of each shape through the other's facing face. The axis only gives a direction, and a
+    // shape such as a box has a face each way along it, so each side uses the face that points at the other shape.
+    int fillHullFace(const ConvexCollider& one, const WorldHull& oneHull, const ConvexCollider& two, const WorldHull& twoHull,
                      Vector3 normal, real penetration, CollisionData* data)
     {
         Contact* first = data->contacts;
-        int added = addFaceCorners(oneHull, one.getFaces()[face], normal * -1, twoHull, normal, -1, one.pBody, two.pBody, first, 0, data);
+        const int oneFace = faceFacing(one, oneHull, normal * -1);
+        int added = addFaceCorners(oneHull, one.getFaces()[oneFace], oneHull.faceNormals[oneFace], twoHull, normal, -1, one.pBody,
+                                   two.pBody, first, 0, data);
         const int twoFace = faceFacing(two, twoHull, normal);
         added += addFaceCorners(twoHull, two.getFaces()[twoFace], twoHull.faceNormals[twoFace], oneHull, normal, 1, one.pBody, two.pBody,
                                 first, added, data);
@@ -612,7 +614,22 @@ int CollisionTests::ConvexConvex(const ConvexCollider& one, const ConvexCollider
             }
             return 0;
         }
-        const real preference = index < faceAxes ? (real)1 : (real)0.95;
+        real preference = index < faceAxes ? (real)1 : (real)0.95;
+
+        // Crossed edges of faces turned slightly against each other give an axis almost along a face normal. That's
+        // really the face contact, so it can still separate the shapes but never wins.
+        if (index >= faceAxes)
+        {
+            const Vector3 unit = axisFor(index).unit();
+            for (const Vector3& faceNormal : a.faceNormals)
+            {
+                preference = real_abs(unit * faceNormal) > (real)0.999 ? 0 : preference;
+            }
+            for (const Vector3& faceNormal : b.faceNormals)
+            {
+                preference = real_abs(unit * faceNormal) > (real)0.999 ? 0 : preference;
+            }
+        }
         if (overlap < smallest * preference)
         {
             smallest = overlap;
@@ -637,13 +654,11 @@ int CollisionTests::ConvexConvex(const ConvexCollider& one, const ConvexCollider
 
     if (best < (int)a.faceNormals.size())
     {
-        return fillHullFace(one, a, two, b, best, normal, smallest, data);
+        return fillHullFace(one, a, two, b, normal, smallest, data);
     }
     if (best < faceAxes)
     {
-        const int face = best - (int)a.faceNormals.size();
-        const int added = fillHullFace(two, b, one, a, face, normal * -1, smallest, data);
-        return added;
+        return fillHullFace(two, b, one, a, normal * -1, smallest, data);
     }
 
     // Edge against edge: on each shape, the edge along that direction nearest the other shape

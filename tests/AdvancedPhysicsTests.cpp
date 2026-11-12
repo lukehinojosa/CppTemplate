@@ -603,3 +603,51 @@ TEST_CASE("Convex shapes rest on a box platform under both resolvers")
         CHECK(world.getAwakeCount() == 0u);
     }
 }
+
+TEST_CASE("A wedge tipped very slightly on a box still rests on all four corners of its base")
+{
+    BoxCollider platform(Vector3(4, 0.5f, 4));
+    platform.offset.data[7] = -0.5f;
+    platform.updateInternals();
+    for (real tilt : { (real)0, (real)0.003, (real)-0.006 })
+    {
+        RigidBody body;
+        ConvexCollider wedge = ConvexCollider::wedge(Vector3(0.6f, 0.4f, 0.5f));
+        wedge.pBody = &body;
+        body.setPosition(Vector3(0, 0.2628f, 0));
+        Quaternion orientation(1, tilt * 0.5f, 0, tilt * 0.3f);
+        orientation.normalise();
+        body.setOrientation(orientation);
+        wedge.updateInternals();
+
+        // The platform's face can win the axis test, and a box has a face each way along that axis; picking the
+        // wrong one used to leave the wedge balanced on a single corner
+        Contact contacts[16];
+        CollisionData data;
+        data.contactArray = contacts;
+        data.reset(16);
+        CHECK(CollisionTests::Generate(wedge, platform, &data) == 4);
+    }
+}
+
+TEST_CASE("Convex shapes settle and sleep from many slightly different starts")
+{
+    // Settling shouldn't depend on one lucky starting position, or on how a compiler rounds
+    for (World::Resolver kind : { World::Resolver::SEQUENTIAL, World::Resolver::SIMULTANEOUS })
+    {
+        for (int n = 0; n < 24; n++)
+        {
+            World world;
+            world.resolverType = kind;
+            BoxCollider platform(Vector3(4, 0.5f, 4));
+            platform.offset.data[7] = -0.5f;
+            world.colliders.push_back(&platform);
+            std::vector<std::unique_ptr<Body>> bodies;
+            addConvex(world, bodies, ConvexCollider::wedge(Vector3(0.6f, 0.4f, 0.5f)), Vector3(0, 1, 0), 1);
+            const Vector3 start((real)(n - 12) * 0.0025f, 2.5f, 0.1f + (real)(n % 5) * 0.004f);
+            addBox(world, bodies, start, Vector3(0.3f, 0.3f, 0.3f), 0.5f);
+            run(world, 10);
+            CHECK(world.getAwakeCount() == 0u);
+        }
+    }
+}

@@ -1,8 +1,8 @@
 # CppTemplate
 
-A starting point for C++20 games and simulations that runs on Windows, Linux, and in the browser. It comes with raylib rendering (lighting, shadows, sky, terrain) and audio, Dear ImGui tools, Cyclone physics, game AI, an event-driven game architecture, and netcode: TCP, UDP with LAN discovery, and a WebSocket relay that works the same on desktop and web.
+A starting point for C++20 games and simulations that runs on Windows, Linux, and in the browser. It comes with raylib rendering (lighting, shadows, sky, terrain) and audio, Dear ImGui tools, Cyclone physics in 3D and 2D, game AI, an event-driven game architecture, and netcode: TCP, UDP with LAN discovery, and a WebSocket relay that works the same on desktop and web.
 
-**Status:** builds on Windows (MSVC) and for the web (Emscripten, WebGL2). The game in `app/` is a short starting point; the sandbox example shows every library working together; and the unit tests cover core, net, ai, engine, and Cyclone.
+**Status:** builds on Windows (MSVC) and for the web (Emscripten, WebGL2). The game in `app/` is a short starting point; the sandbox example shows every library working together; the physics2d example shows the 2D engine; and the unit tests cover core, net, ai, engine, and both physics engines.
 
 ## Getting started
 
@@ -22,7 +22,9 @@ Windows 10/11, from the repo folder in File Explorer:
 | `app/assets/` | Images and sounds, loaded as `"assets/name.png"` |
 | `app/config/` | Runtime settings in `game.yaml`; changes apply without a rebuild |
 | `examples/sandbox/` | A demo of every library: lighting and shadows, terrain, the physics playground, boids, audio, networking. Reference for how to use each one. |
+| `examples/physics2d/` | The 2D physics engine on its own: stacks, a ramp, a chain on joints; click to drop shapes and drag them around |
 | `libs/cyclone/` | Cyclone physics (Millington, *Game Physics Engine Development*) |
+| `libs/cyclone2d/` | The same engine in 2D: particles, rigid bodies with circle, box and convex polygon shapes, joints, friction, and sleeping. Include `<cyclone2d/cyclone2d.h>`. |
 | `libs/engine/` | The game loop, rendering, lighting, audio, input, animation |
 | `libs/core/` | Events, components, memory pools, config, timers |
 | `libs/ai/`, `net/`, `gpu/` | Game AI, networking, WebGPU compute (optional) |
@@ -66,6 +68,7 @@ From PowerShell in the repo root:
 | `.\build.ps1` | Debug build, then the unit tests |
 | `.\build.ps1 -Run` | Also starts the game |
 | `.\build.ps1 -Run -Sandbox` | Starts the sandbox example instead |
+| `.\build.ps1 -Run -Physics2D` | Starts the 2D physics example instead |
 | `.\build.ps1 -Config Release` | Release build |
 | `.\build.ps1 -SkipTests` | Skips the unit tests |
 | `.\build.ps1 -Web -Run` | Browser build, served on :8080 |

@@ -6,6 +6,7 @@ param(
     [switch]$Web,
     [switch]$Run,
     [switch]$Sandbox,
+    [switch]$Physics2D,
     [switch]$SkipTests,
     [switch]$GpuCompute
 )
@@ -97,7 +98,8 @@ if ($Web)
     {
         Assert-Tool 'python'
         Write-Host "Serving on http://localhost:8080 (Ctrl+C or close the window to stop)"
-        Start-Process ($(if ($Sandbox) { 'http://localhost:8080/sandbox.html' } else { 'http://localhost:8080' }))
+        $page = if ($Sandbox) { 'sandbox.html' } elseif ($Physics2D) { 'physics2d.html' } else { '' }
+        Start-Process "http://localhost:8080/$page"
         & python -m http.server 8080 --directory build\web\bin
     }
     exit 0
@@ -121,7 +123,8 @@ if ($Run)
     Push-Location $binDir
     try
     {
-        & (Join-Path $binDir ($(if ($Sandbox) { 'sandbox.exe' } else { 'app.exe' })))
+        $exe = if ($Sandbox) { 'sandbox.exe' } elseif ($Physics2D) { 'physics2d.exe' } else { 'app.exe' }
+        & (Join-Path $binDir $exe)
     }
     finally
     {

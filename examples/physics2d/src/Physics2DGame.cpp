@@ -42,6 +42,7 @@ void Physics2DGame::resetScene()
     mWorld.bodies.clear();
     mWorld.colliders.clear();
     mWorld.contactGenerators.clear();
+    mWorld.joints.clear();
     mWorld.forces.clear();
     mShapes.clear();
     mJoints.clear();
@@ -141,11 +142,14 @@ void Physics2DGame::addChain(c2::Vector2 anchor, int links)
     {
         const c2::Vector2 centre = anchor + c2::Vector2(reach * (real)(2 * i + 1), 0);
         Shape2D& link = addBox(centre, halfSize, i % 2 == 0 ? RED : MAROON);
-        link.body.setCanSleep(false);
+
+        // A real chain loses energy at every link, so it settles instead of swaying for minutes
+        link.body.setLinearDamping(0.5f);
+        link.body.setAngularDamping(0.5f);
 
         auto pJoint = std::make_unique<c2::Joint>();
         pJoint->set(&link.body, c2::Vector2(-reach, 0), pPrevious, previousPoint);
-        mWorld.contactGenerators.push_back(pJoint.get());
+        mWorld.joints.push_back(pJoint.get());
         mJoints.push_back(std::move(pJoint));
 
         pPrevious = &link.body;

@@ -19,6 +19,11 @@ namespace cyclone2d
         std::vector<RigidBody*> bodies;
         std::vector<Collider*> colliders;
         std::vector<ContactGenerator*> contactGenerators;
+
+        // Pins solved after the contacts each frame; bodies on the same joint don't collide with each other
+        std::vector<Joint*> joints;
+        unsigned jointVelocityIterations = 10;
+        unsigned jointPositionIterations = 10;
         RigidBodyForceRegistry forces;
         ContactResolver resolver;
 
@@ -45,6 +50,8 @@ namespace cyclone2d
         void updateSleep();
         unsigned generateContactsOnce();
         bool wakeTouchedSleepers(unsigned count);
+        void solveJoints();
+        bool joined(const RigidBody* a, const RigidBody* b) const;
 
         std::vector<Contact> contacts;
         unsigned contactCount = 0;

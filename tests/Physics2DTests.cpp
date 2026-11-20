@@ -369,7 +369,7 @@ TEST_CASE("A 2D joint holds a swinging body at its pivot")
     auto pBox = makeBox(world, Vector2(2, 5), Vector2(1, (real)0.1), 1);
     Joint pin;
     pin.set(&pBox->body, Vector2(-1, 0), nullptr, Vector2(1, 5));
-    world.contactGenerators.push_back(&pin);
+    world.joints.push_back(&pin);
     pBox->body.setCanSleep(false);
 
     real lowest = 5;
@@ -382,6 +382,48 @@ TEST_CASE("A 2D joint holds a swinging body at its pivot")
 
     // The free end swung down through the bottom of its arc
     CHECK(lowest < 4.2f);
+}
+
+TEST_CASE("A 2D chain on World joints stays pinned together, then settles hanging straight down")
+{
+    World world;
+    std::vector<std::unique_ptr<Box>> links;
+    std::vector<std::unique_ptr<Joint>> joints;
+    const Vector2 anchor(0, 10);
+    const Vector2 halfSize((real)0.4, (real)0.08);
+    const real reach = halfSize.x + (real)0.1;
+    RigidBody* pPrevious = nullptr;
+    Vector2 previousPoint = anchor;
+    for (int i = 0; i < 4; i++)
+    {
+        // Laid out sideways, so the chain whips down when it starts
+        auto pLink = makeBox(world, anchor + Vector2(reach * (real)(2 * i + 1), 0), halfSize, 1);
+        pLink->body.setLinearDamping((real)0.5);
+        pLink->body.setAngularDamping((real)0.5);
+        auto pJoint = std::make_unique<Joint>();
+        pJoint->set(&pLink->body, Vector2(-reach, 0), pPrevious, previousPoint);
+        world.joints.push_back(pJoint.get());
+        pPrevious = &pLink->body;
+        previousPoint = Vector2(reach, 0);
+        links.push_back(std::move(pLink));
+        joints.push_back(std::move(pJoint));
+    }
+
+    // The book's single-contact joint let these drift a quarter of a metre apart
+    for (int i = 0; i < 300; i++)
+    {
+        world.runPhysics(DT);
+        for (const auto& pJoint : joints)
+        {
+            REQUIRE((pJoint->getWorldPosition(0) - pJoint->getWorldPosition(1)).magnitude() < 0.01f);
+        }
+    }
+    run(world, 30);
+
+    const Vector2 bottom = links.back()->body.getPosition();
+    CHECK(std::abs(bottom.x) < 0.05f);
+    CHECK(bottom.y == doctest::Approx(10 - 7 * reach).epsilon(0.01));
+    CHECK(world.getAwakeCount() == 0);
 }
 
 TEST_CASE("A 2D spring pulls a body toward a fixed point and the world finds what's under the cursor")

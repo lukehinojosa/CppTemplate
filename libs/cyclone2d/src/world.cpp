@@ -1,5 +1,6 @@
 #include "world.h"
 
+#include <algorithm>
 #include <numeric>
 #include <unordered_map>
 
@@ -109,7 +110,7 @@ unsigned World::generateContactsOnce()
         {
             const Collider& a = *colliders[i];
             const Collider& b = *colliders[j];
-            if (!worthTesting(a, b) || !mightTouch(a, b))
+            if (!worthTesting(a, b) || !mightTouch(a, b) || joined(a.pBody, b.pBody))
             {
                 continue;
             }
@@ -136,7 +137,57 @@ void World::runPhysics(real duration)
     integrate(duration);
     contactCount = generateContacts();
     resolver.resolveContacts(contacts.data(), contactCount, duration);
+    solveJoints();
     updateSleep();
+}
+
+void World::solveJoints()
+{
+    std::vector<const Joint*> active;
+    for (const Joint* pJoint : joints)
+    {
+        if (pJoint->prepare())
+        {
+            active.push_back(pJoint);
+        }
+    }
+    for (unsigned i = 0; i < jointVelocityIterations; i++)
+    {
+        for (const Joint* pJoint : active)
+        {
+            pJoint->solveVelocity();
+        }
+    }
+
+    // Each pass works from where the bodies are now, so it converges even when they have turned a long way
+    for (unsigned i = 0; i < jointPositionIterations; i++)
+    {
+        real worst = 0;
+        for (const Joint* pJoint : active)
+        {
+            worst = std::max(worst, pJoint->solvePosition() - pJoint->error);
+        }
+        if (worst < (real)0.0005)
+        {
+            break;
+        }
+    }
+}
+
+bool World::joined(const RigidBody* a, const RigidBody* b) const
+{
+    if (a == nullptr || b == nullptr)
+    {
+        return false;
+    }
+    for (const Joint* pJoint : joints)
+    {
+        if ((pJoint->body[0] == a && pJoint->body[1] == b) || (pJoint->body[0] == b && pJoint->body[1] == a))
+        {
+            return true;
+        }
+    }
+    return false;
 }
 
 void World::updateSleep()
@@ -170,6 +221,16 @@ void World::updateSleep()
         auto a = indexOf.find(contact.body[0]);
         auto b = indexOf.find(contact.body[1]);
         if (a != indexOf.end() && b != indexOf.end())
+        {
+            parent[(std::size_t)find(a->second)] = find(b->second);
+        }
+    }
+
+    for (const Joint* pJoint : joints)
+    {
+        auto a = indexOf.find(pJoint->body[0]);
+        auto b = indexOf.find(pJoint->body[1]);
+        if (a != indexOf.end() && b != indexOf.end() && pJoint->body[0]->hasFiniteMass() && pJoint->body[1]->hasFiniteMass())
         {
             parent[(std::size_t)find(a->second)] = find(b->second);
         }

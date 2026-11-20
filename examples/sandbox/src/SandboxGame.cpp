@@ -525,6 +525,7 @@ void SandboxGame::buildPlayground()
     mPhysics.bodies.clear();
     mPhysics.colliders.clear();
     mPhysics.contactGenerators.clear();
+    mPhysics.joints.clear();
     mPhysics.forces.clear();
     mPhysics.clearCoherence();
     mPlayBodies.clear();
@@ -600,6 +601,10 @@ void SandboxGame::buildPlayground()
         Vector3 position = { anchor.x + 0.75f * (i + 0.5f), anchor.y - 0.1f * i, anchor.z };
         PlaygroundBody* pLink = addPlaygroundBox(position, linkHalf, 0.4f);
         pLink->color = SKYBLUE;
+
+        // A real chain loses energy at every link, so it settles instead of swaying for minutes
+        pLink->body.setLinearDamping(0.5f);
+        pLink->body.setAngularDamping(0.5f);
         pLink->body.setOrientation(cyclone::Quaternion(0.7071f, 0.0f, 0.0f, 0.7071f));
         pLink->previousOrientation = pLink->body.getOrientation();
         auto pJoint = std::make_unique<cyclone::Joint>();
@@ -611,7 +616,7 @@ void SandboxGame::buildPlayground()
         {
             pJoint->set(&pLink->body, cyclone::Vector3(0, linkHalf.y, 0), &pPrevious->body, cyclone::Vector3(0, -linkHalf.y, 0), 0.01f);
         }
-        mPhysics.contactGenerators.push_back(pJoint.get());
+        mPhysics.joints.push_back(pJoint.get());
         mJoints.push_back(std::move(pJoint));
         pPrevious = pLink;
     }

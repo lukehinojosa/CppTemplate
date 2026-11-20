@@ -556,3 +556,126 @@ unsigned Joint::addContact(Contact* contact, unsigned limit) const
     contact->restitution = 0;
     return 1;
 }
+
+namespace
+{
+    // What an impulse at a body's joint point does to it: zero for no body or an immovable one
+    struct JointSide
+    {
+        RigidBody* pBody = nullptr;
+        Vector2 arm; // From the body's centre to its joint point
+        real inverseMass = 0;
+        real inverseInertia = 0;
+    };
+
+    JointSide jointSide(RigidBody* pBody, const Vector2& worldPoint)
+    {
+        JointSide side;
+        if (pBody != nullptr && pBody->hasFiniteMass())
+        {
+            side.pBody = pBody;
+            side.arm = worldPoint - pBody->getPosition();
+            side.inverseMass = pBody->getInverseMass();
+            side.inverseInertia = pBody->getInverseInertia();
+        }
+        return side;
+    }
+
+    // The impulse that changes the gap between the two joint points by exactly wanted
+    Vector2 jointImpulse(const JointSide& a, const JointSide& b, const Vector2& wanted)
+    {
+        const real mass = a.inverseMass + b.inverseMass;
+        const real k11 = mass + a.inverseInertia * a.arm.y * a.arm.y + b.inverseInertia * b.arm.y * b.arm.y;
+        const real k12 = -a.inverseInertia * a.arm.x * a.arm.y - b.inverseInertia * b.arm.x * b.arm.y;
+        const real k22 = mass + a.inverseInertia * a.arm.x * a.arm.x + b.inverseInertia * b.arm.x * b.arm.x;
+        const real determinant = k11 * k22 - k12 * k12;
+        if (determinant <= 0)
+        {
+            return Vector2();
+        }
+        return Vector2(k22 * wanted.x - k12 * wanted.y, k11 * wanted.y - k12 * wanted.x) * (1 / determinant);
+    }
+}
+
+bool Joint::prepare() const
+{
+    const bool moves0 = body[0] != nullptr && body[0]->hasFiniteMass();
+    const bool moves1 = body[1] != nullptr && body[1]->hasFiniteMass();
+    if (!moves0 && !moves1)
+    {
+        return false;
+    }
+    const bool awake0 = moves0 && body[0]->isAwake();
+    const bool awake1 = moves1 && body[1]->isAwake();
+    if (!awake0 && !awake1)
+    {
+        return false;
+    }
+    if (moves0 && !awake0)
+    {
+        body[0]->setAwake(true);
+    }
+    if (moves1 && !awake1)
+    {
+        body[1]->setAwake(true);
+    }
+    return true;
+}
+
+void Joint::solveVelocity() const
+{
+    const Vector2 point0 = getWorldPosition(0);
+    const Vector2 point1 = getWorldPosition(1);
+    const JointSide a = jointSide(body[0], point0);
+    const JointSide b = jointSide(body[1], point1);
+
+    Vector2 relativeVelocity;
+    if (b.pBody != nullptr)
+    {
+        relativeVelocity += b.pBody->getVelocityAtPoint(point1);
+    }
+    if (a.pBody != nullptr)
+    {
+        relativeVelocity -= a.pBody->getVelocityAtPoint(point0);
+    }
+
+    const Vector2 impulse = jointImpulse(a, b, relativeVelocity);
+    if (a.pBody != nullptr)
+    {
+        a.pBody->setLinearVelocity(a.pBody->getLinearVelocity() + impulse * a.inverseMass);
+        a.pBody->setAngularVelocity(a.pBody->getAngularVelocity() + a.arm.cross(impulse) * a.inverseInertia);
+    }
+    if (b.pBody != nullptr)
+    {
+        b.pBody->setLinearVelocity(b.pBody->getLinearVelocity() - impulse * b.inverseMass);
+        b.pBody->setAngularVelocity(b.pBody->getAngularVelocity() - b.arm.cross(impulse) * b.inverseInertia);
+    }
+}
+
+real Joint::solvePosition() const
+{
+    const Vector2 point0 = getWorldPosition(0);
+    const Vector2 point1 = getWorldPosition(1);
+    Vector2 gap = point1 - point0;
+    const real length = gap.magnitude();
+    if (length <= error || length <= 0)
+    {
+        return length;
+    }
+    gap *= (length - error) / length;
+
+    const JointSide a = jointSide(body[0], point0);
+    const JointSide b = jointSide(body[1], point1);
+    const Vector2 move = jointImpulse(a, b, gap);
+    if (a.pBody != nullptr)
+    {
+        a.pBody->setPosition(a.pBody->getPosition() + move * a.inverseMass);
+        a.pBody->setOrientation(a.pBody->getOrientation() + a.arm.cross(move) * a.inverseInertia);
+    }
+    if (b.pBody != nullptr)
+    {
+        b.pBody->setPosition(b.pBody->getPosition() - move * b.inverseMass);
+        b.pBody->setOrientation(b.pBody->getOrientation() - b.arm.cross(move) * b.inverseInertia);
+    }
+    return length;
+}

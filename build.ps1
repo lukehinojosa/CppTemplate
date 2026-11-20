@@ -50,25 +50,86 @@ function Assert-Tool([string]$Name)
     }
 }
 
-# Loads the compiler environment from whichever Visual Studio version has the C++ tools
-function Enter-Msvc
+# The MSVC cl.exe a build folder was configured with, if it still exists
+function Get-CachedMsvc([string]$BuildDir)
 {
-    if (Get-Command cl.exe -ErrorAction SilentlyContinue)
+    $cache = Join-Path $BuildDir 'CMakeCache.txt'
+    if (-not (Test-Path $cache))
     {
-        return
+        return $null
     }
-    $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
-    if (-not (Test-Path $vswhere))
+    $line = Select-String -Path $cache -Pattern '^CMAKE_CXX_COMPILER:FILEPATH=(.+)$' | Select-Object -First 1
+    if (-not $line)
     {
-        throw 'Visual Studio was not found. Run install.bat first.'
+        return $null
     }
-    $vsPath = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath | Select-Object -First 1
+    $compiler = [IO.Path]::GetFullPath($line.Matches[0].Groups[1].Value.Trim())
+    if ($compiler -match '\\VC\\Tools\\MSVC\\' -and (Test-Path $compiler))
+    {
+        return $compiler
+    }
+    return $null
+}
+
+# The MSVC used by the build folders CLion has enabled, so both share one compiler
+function Get-ClionMsvc
+{
+    $workspace = Join-Path $PSScriptRoot '.idea\workspace.xml'
+    if (-not (Test-Path $workspace))
+    {
+        return $null
+    }
+    $profiles = Select-String -Path $workspace -Pattern '<configuration [^>]*ENABLED="true"[^>]*GENERATION_DIR="([^"]+)"'
+    foreach ($clionProfile in $profiles)
+    {
+        $dir = $clionProfile.Matches[0].Groups[1].Value.Replace('$PROJECT_DIR$', $PSScriptRoot)
+        $compiler = Get-CachedMsvc $dir
+        if ($compiler)
+        {
+            return $compiler
+        }
+    }
+    return $null
+}
+
+# Loads the compiler environment, preferring the MSVC that CLion or this preset's build folder already uses, then the
+# newest Visual Studio with the C++ tools. Returns the cl.exe that ends up on PATH.
+function Enter-Msvc([string]$BuildDir)
+{
+    $wanted = Get-ClionMsvc
+    if (-not $wanted)
+    {
+        $wanted = Get-CachedMsvc $BuildDir
+    }
+    $current = Get-Command cl.exe -ErrorAction SilentlyContinue
+    if ($current -and (-not $wanted -or $current.Source -eq $wanted))
+    {
+        return $current.Source
+    }
+
+    $vcvarsArgs = ''
+    if ($wanted)
+    {
+        $vsPath = $wanted.Substring(0, $wanted.IndexOf('\VC\Tools\MSVC\'))
+        $toolsVersion = ($wanted.Substring($vsPath.Length + '\VC\Tools\MSVC\'.Length) -split '\\')[0]
+        $vcvarsArgs = "-vcvars_ver=$toolsVersion"
+        Write-Host "Using MSVC $toolsVersion from $vsPath, which the existing build already uses"
+    }
+    else
+    {
+        $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+        if (-not (Test-Path $vswhere))
+        {
+            throw 'Visual Studio was not found. Run install.bat first.'
+        }
+        $vsPath = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath | Select-Object -First 1
+    }
     $vcvars = if ($vsPath) { Join-Path $vsPath 'VC\Auxiliary\Build\vcvars64.bat' } else { $null }
     if (-not $vcvars -or -not (Test-Path $vcvars))
     {
         throw 'The Visual Studio C++ tools were not found. Run install.bat first.'
     }
-    foreach ($line in (& cmd.exe /c "`"$vcvars`" >nul && set"))
+    foreach ($line in (& cmd.exe /c "`"$vcvars`" $vcvarsArgs >nul && set"))
     {
         $name, $value = $line -split '=', 2
         if ($value)
@@ -76,6 +137,7 @@ function Enter-Msvc
             Set-Item -Path "env:$name" -Value $value
         }
     }
+    return (Get-Command cl.exe).Source
 }
 
 $extraArgs = @()
@@ -105,8 +167,17 @@ if ($Web)
     exit 0
 }
 
-Enter-Msvc
 $preset = "windows-$($Config.ToLower())"
+$buildDir = Join-Path $PSScriptRoot "build\$preset"
+$compiler = Enter-Msvc $buildDir
+
+# A build folder set up with another MSVC would mix two compilers, so it starts over with this one
+$cachedCompiler = Get-CachedMsvc $buildDir
+if ($cachedCompiler -and $cachedCompiler -ne $compiler)
+{
+    Write-Host "build\$preset was set up with $cachedCompiler, so it is reconfigured with $compiler"
+    Remove-Item (Join-Path $buildDir 'CMakeCache.txt'), (Join-Path $buildDir 'CMakeFiles') -Recurse -Force -ErrorAction SilentlyContinue
+}
 Invoke-Step 'Configure' { cmake --preset $preset @extraArgs }
 Invoke-Step "Build ($Config)" { cmake --build --preset $preset }
 if (-not $SkipTests)

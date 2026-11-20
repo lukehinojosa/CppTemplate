@@ -81,7 +81,7 @@ From PowerShell in the repo root:
 <details>
 <summary><b>CLion</b></summary>
 
-Open the folder and enable the `Windows Debug`, `Windows Release`, or `Web` profile when CLion offers the presets. They use CLion's bundled Ninja and its default "Visual Studio" toolchain, and share build folders with `build.ps1`, so the libraries are only compiled once.
+Open the folder and enable the `Windows Debug`, `Windows Release`, or `Web` profile when CLion offers the presets. They use CLion's bundled Ninja and its default "Visual Studio" toolchain, and share build folders with `build.ps1`, so the libraries are only compiled once. `build.ps1` uses the same Visual Studio version as the profiles CLion has enabled, even when a newer one is installed.
 
 </details>
 

@@ -1,6 +1,8 @@
 add_library(engine STATIC
     src/Audio.cpp
     src/Game.cpp
+    src/Scene.cpp
+    src/SceneManager.cpp
     src/InputSystem.cpp
     src/FlyCamera.cpp
     src/ShaderUtils.cpp

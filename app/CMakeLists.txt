@@ -1,6 +1,8 @@
 add_executable(app
     src/main.cpp
     src/Game.cpp
+    src/scenes/MenuScenes.cpp
+    src/scenes/PlayScene.cpp
 )
 target_link_libraries(app PRIVATE engine)
 template_set_warnings(app)

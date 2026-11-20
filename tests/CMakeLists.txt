@@ -11,6 +11,7 @@ add_executable(tests
     Physics2DTests.cpp
     AiTests.cpp
     EngineTests.cpp
+    SceneTests.cpp
     GpuTests.cpp
 )
 target_link_libraries(tests PRIVATE core net cyclone cyclone2d ai engine doctest::doctest)

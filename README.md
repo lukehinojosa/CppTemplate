@@ -18,14 +18,14 @@ Windows 10/11, from the repo folder in File Explorer:
 
 | Folder | Contents |
 | --- | --- |
-| `app/src/` | The game: `Game.cpp` drops physics boxes on a floor (Space drops another, R resets) and is where game code goes |
+| `app/src/` | The game, as scenes: a title screen, `scenes/PlayScene.cpp`, which drops physics boxes on a floor (Space drops another, R resets) and is where game code goes, and a pause menu (Escape or P). `Game.cpp` adds the scenes. |
 | `app/assets/` | Images and sounds, loaded as `"assets/name.png"` |
 | `app/config/` | Runtime settings in `game.yaml`; changes apply without a rebuild |
 | `examples/sandbox/` | A demo of every library: lighting and shadows, terrain, the physics playground, boids, audio, networking. Reference for how to use each one. |
 | `examples/physics2d/` | The 2D physics engine on its own: stacks, a ramp, a chain on joints; click to drop shapes and drag them around |
 | `libs/cyclone/` | Cyclone physics (Millington, *Game Physics Engine Development*) |
 | `libs/cyclone2d/` | The same engine in 2D: particles, rigid bodies with circle, box and convex polygon shapes, joints, friction, and sleeping. Include `<cyclone2d/cyclone2d.h>`. |
-| `libs/engine/` | The game loop, rendering, lighting, audio, input, animation |
+| `libs/engine/` | The game loop and scenes, rendering, lighting, audio, input, animation |
 | `libs/core/` | Events, components, memory pools, config, timers |
 | `libs/ai/`, `net/`, `gpu/` | Game AI, networking, WebGPU compute (optional) |
 | `libs/vendor/` | Third-party code: raylib, Dear ImGui, rlImGui, FastNoiseLite |

@@ -13,6 +13,7 @@
 #include <core/EventSystem.h>
 #include <core/MemoryTracker.h>
 #include <engine/Conversions.h>
+#include <engine/DrawUtils.h>
 
 #ifdef TEMPLATE_HAS_SOCKETS
 #include <net/Serialize.h>
@@ -758,6 +759,10 @@ void SandboxGame::drawPlayground()
             const cyclone::Vector3 h = static_cast<const cyclone::BoxCollider&>(*pBody->pCollider).halfSize;
             mUnitCube.transform = MatrixMultiply(MatrixScale((float)h.x * 2.0f, (float)h.y * 2.0f, (float)h.z * 2.0f), pose);
             DrawModel(mUnitCube, Vector3Zero(), 1.0f, color);
+            if (mShowWires)
+            {
+                engine::drawModelWires(mUnitCube, Vector3Zero(), 1.0f, BLACK);
+            }
             break;
         }
         case PlaygroundShape::BALL:
@@ -765,6 +770,10 @@ void SandboxGame::drawPlayground()
             const float r = (float)static_cast<const cyclone::SphereCollider&>(*pBody->pCollider).radius;
             mUnitSphere.transform = MatrixMultiply(MatrixScale(r, r, r), pose);
             DrawModel(mUnitSphere, Vector3Zero(), 1.0f, color);
+            if (mShowWires)
+            {
+                engine::drawModelWires(mUnitSphere, Vector3Zero(), 1.0f, BLACK);
+            }
             break;
         }
         case PlaygroundShape::CONVEX:
@@ -772,6 +781,10 @@ void SandboxGame::drawPlayground()
             Model& model = mConvexModels[pBody->convexModel];
             model.transform = pose;
             DrawModel(model, Vector3Zero(), 1.0f, color);
+            if (mShowWires)
+            {
+                engine::drawModelWires(model, Vector3Zero(), 1.0f, BLACK);
+            }
             break;
         }
         }
@@ -836,6 +849,8 @@ void SandboxGame::drawPlaygroundGui()
     ImGui::Checkbox("Coherence", &mPhysics.useCoherence);
     ImGui::SameLine();
     ImGui::Checkbox("Show contacts", &mShowContacts);
+    ImGui::SameLine();
+    ImGui::Checkbox("Wireframe", &mShowWires);
 }
 
 void SandboxGame::onDraw3D()
@@ -843,7 +858,7 @@ void SandboxGame::onDraw3D()
     mSky.draw(getSunDirection());
     drawScene();
 
-    // Drawn as lines rather than DrawModelWires, because WebGL has no wireframe polygon mode
+    // DrawCubeWires draws lines, which WebGL supports; DrawModelWires (or engine::drawModelWires) would add face diagonals
     rlPushMatrix();
     rlMultMatrixf(MatrixToFloatV(mCubeModel.transform).v);
     DrawCubeWires(Vector3Zero(), CUBE_HALF_SIZE * 2.0f, CUBE_HALF_SIZE * 2.0f, CUBE_HALF_SIZE * 2.0f, BLACK);

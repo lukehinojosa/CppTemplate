@@ -1,5 +1,6 @@
 add_library(engine STATIC
     src/Audio.cpp
+    src/DrawUtils.cpp
     src/Game.cpp
     src/Scene.cpp
     src/SceneManager.cpp

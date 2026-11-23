@@ -28,7 +28,7 @@ void TitleScene::onUpdate(double, double)
 {
     if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE))
     {
-        getScenes().switchTo("play", mTowerHeight, kFade);
+        switchTo("play", mTowerHeight, kFade);
     }
 }
 
@@ -36,6 +36,11 @@ void TitleScene::onDraw2D()
 {
     drawCentredText(getConfig().title.c_str(), GetScreenHeight() / 2 - 90, 48, RAYWHITE);
     drawCentredText("Press Enter to play", GetScreenHeight() / 2 - 30, 20, GRAY);
+    if (mSession.gamesStarted > 0)
+    {
+        drawCentredText(TextFormat("Games this run: %d   Boxes dropped: %d", mSession.gamesStarted, mSession.boxesDropped),
+                        GetScreenHeight() / 2 + 110, 20, LIGHTGRAY);
+    }
 }
 
 void TitleScene::onGui()
@@ -46,7 +51,7 @@ void TitleScene::onGui()
         ImGui::SliderInt("##height", &mTowerHeight, 1, 10, "Tower of %d");
         if (ImGui::Button("Play", { 160.0f, 0.0f }))
         {
-            getScenes().switchTo("play", mTowerHeight, kFade);
+            switchTo("play", mTowerHeight, kFade);
         }
 #ifndef __EMSCRIPTEN__
         if (ImGui::Button("Quit", { 160.0f, 0.0f }))
@@ -62,7 +67,7 @@ void PauseScene::onUpdate(double, double)
 {
     if (IsKeyPressed(KEY_ESCAPE) || IsKeyPressed(KEY_P))
     {
-        getScenes().pop();
+        pop();
     }
 }
 
@@ -78,16 +83,16 @@ void PauseScene::onGui()
     {
         if (ImGui::Button("Resume", { 160.0f, 0.0f }))
         {
-            getScenes().pop();
+            pop();
         }
         if (ImGui::Button("Restart", { 160.0f, 0.0f }))
         {
             // The same value the play scene was started with, so it restarts as it began
-            getScenes().switchTo("play", getScenes().find("play")->getParameter(), kFade);
+            switchTo("play", getScenes().find("play")->getParameter(), kFade);
         }
         if (ImGui::Button("Title", { 160.0f, 0.0f }))
         {
-            getScenes().switchTo("title", kFade);
+            switchTo("title", kFade);
         }
 #ifndef __EMSCRIPTEN__
         if (ImGui::Button("Quit", { 160.0f, 0.0f }))

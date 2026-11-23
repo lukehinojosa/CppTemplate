@@ -14,16 +14,6 @@
 
 namespace engine
 {
-    // How a switch looks: fade to a colour, swap scenes while the screen is covered, then fade back in
-    struct SceneTransition
-    {
-        float fadeOutSeconds = 0.0f;
-        float fadeInSeconds = 0.0f;
-        Color color = BLACK;
-
-        static SceneTransition fade(float seconds, Color color = BLACK) { return SceneTransition{ seconds / 2, seconds / 2, color }; }
-    };
-
     // Owns a game's scenes by name and runs a stack of them: the top one updates, and overlays let the ones under
     // them show. Changes wait for the start of the next frame, so a scene is never swapped out halfway through its
     // own hooks. Game calls the per-frame functions; games only add scenes and ask for changes.

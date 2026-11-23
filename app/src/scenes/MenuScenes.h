@@ -2,13 +2,20 @@
 
 #include <engine/Scene.h>
 
-// The first screen: the game's name and a way in
+#include "../Session.h"
+
+// The first screen: the game's name, what's happened so far this run, and a way in
 class TitleScene : public engine::Scene
 {
+public:
+    explicit TitleScene(const Session& session) : mSession(session) {}
+
 private:
     void onUpdate(double frameDt, double alpha) override;
     void onDraw2D() override;
     void onGui() override;
+
+    const Session& mSession;
 
     // Handed to the play scene when it starts
     int mTowerHeight = 4;

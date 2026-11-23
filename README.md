@@ -18,7 +18,7 @@ Windows 10/11, from the repo folder in File Explorer:
 
 | Folder | Contents |
 | --- | --- |
-| `app/src/` | The game, as scenes: a title screen, `scenes/PlayScene.cpp`, which drops physics boxes on a floor (Space drops another, R resets) and is where game code goes, and a pause menu (Escape or P). `Game.cpp` adds the scenes. |
+| `app/src/` | The game, as scenes: a title screen, `scenes/PlayScene.cpp`, which drops physics boxes on a floor (Space drops another, R resets) and is where game code goes, and a pause menu (Escape or P). `Game.cpp` adds the scenes. Data a scene needs for one visit goes along with `switchTo()`, like the tower height the title hands the play scene; data that lasts the whole run lives in `Game`, which hands the scenes a reference when adding them, like the `Session` counts the title screen shows. |
 | `app/assets/` | Images and sounds, loaded as `"assets/name.png"` |
 | `app/config/` | Runtime settings in `game.yaml`; changes apply without a rebuild |
 | `examples/sandbox/` | A demo of every library: lighting and shadows, terrain, the physics playground, boids, audio, networking. Reference for how to use each one. |

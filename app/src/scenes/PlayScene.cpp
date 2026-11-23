@@ -5,7 +5,6 @@
 #include <rlgl.h>
 
 #include <engine/Conversions.h>
-#include <engine/SceneManager.h>
 
 using engine::toCyclone;
 using engine::toRaylib;
@@ -15,6 +14,7 @@ void PlayScene::onEnter()
     // Entered from the title or a restart, so always a fresh scene; returning from pause resumes instead.
     // The title passes the tower's height in.
     mTowerHeight = getParameter(4);
+    mSession.gamesStarted++;
     const float height = (float)mTowerHeight;
     getCamera().position = { 9.0f, 3.0f + height, 9.0f + height };
     getCamera().target = { 0.0f, height / 2.0f, 0.0f };
@@ -64,6 +64,7 @@ void PlayScene::dropBox()
     const Vector3 position = { (float)GetRandomValue(-20, 20) / 10.0f, 8.0f, (float)GetRandomValue(-20, 20) / 10.0f };
     const Quaternion tilt = QuaternionFromEuler((float)GetRandomValue(0, 314) / 100.0f, 0.0f, (float)GetRandomValue(0, 314) / 100.0f);
     addBox(position, { 0.5f, 0.5f, 0.5f }, ColorFromHSV((float)GetRandomValue(0, 360), 0.6f, 0.9f), tilt);
+    mSession.boxesDropped++;
 }
 
 void PlayScene::onFixedUpdate(double dt)
@@ -91,7 +92,7 @@ void PlayScene::onUpdate(double frameDt, double alpha)
     }
     if (IsKeyPressed(KEY_ESCAPE) || IsKeyPressed(KEY_P))
     {
-        getScenes().push("pause");
+        push("pause");
     }
 }
 

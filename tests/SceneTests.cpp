@@ -30,9 +30,19 @@ namespace
             record("update");
             if (!mNext.empty())
             {
-                getScenes().switchTo(mNext);
+                switchTo(mNext);
                 mNext.clear();
                 record("asked");
+            }
+            if (!mPushNext.empty())
+            {
+                push(mPushNext);
+                mPushNext.clear();
+            }
+            if (mPopNext)
+            {
+                pop();
+                mPopNext = false;
             }
         }
 
@@ -40,6 +50,8 @@ namespace
 
         // Asks for a switch from inside its own update, the way a menu button would
         void switchOnNextUpdate(const std::string& name) { mNext = name; }
+        void pushOnNextUpdate(const std::string& name) { mPushNext = name; }
+        void popOnNextUpdate() { mPopNext = true; }
 
         // Reaches the game through the scene's helpers
         float cameraFov() const { return getCamera().fovy; }
@@ -50,6 +62,8 @@ namespace
         std::vector<std::string>& mLog;
         bool mOverlay;
         std::string mNext;
+        std::string mPushNext;
+        bool mPopNext = false;
     };
 
     struct Fixture
@@ -105,6 +119,27 @@ TEST_CASE("A switch waits for the next update, loads the scene once, and exits t
     f.scenes.switchTo("menu");
     f.step(0.02);
     CHECK(f.take() == Log{ "menu:exit", "level:load", "level:enter", "level:update", "level:exit", "menu:enter", "menu:update" });
+}
+
+TEST_CASE("A scene can put another on top of itself and take it off again through its own shortcuts")
+{
+    Fixture f;
+    RecordingScene& level = f.add("level");
+    RecordingScene& pause = f.add("pause", true);
+    f.scenes.switchTo("level");
+    f.step(0.02);
+
+    level.pushOnNextUpdate("pause");
+    f.step(0.02);
+    f.step(0.02);
+    CHECK(f.scenes.getCurrent() == &pause);
+    CHECK(f.scenes.getDepth() == 2);
+
+    pause.popOnNextUpdate();
+    f.step(0.02);
+    f.step(0.02);
+    CHECK(f.scenes.getCurrent() == &level);
+    CHECK(f.scenes.getDepth() == 1);
 }
 
 TEST_CASE("A scene that asks for a switch inside its update finishes the frame before it goes")

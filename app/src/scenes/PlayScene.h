@@ -7,6 +7,8 @@
 #include <engine/FlyCamera.h>
 #include <engine/Scene.h>
 
+#include "../Session.h"
+
 // A physics box, plus its pose before the last physics step so drawing can blend between steps
 struct Box
 {
@@ -20,6 +22,9 @@ struct Box
 // Drops physics boxes on a floor: where game code goes. Escape or P pauses.
 class PlayScene : public engine::Scene
 {
+public:
+    explicit PlayScene(Session& session) : mSession(session) {}
+
 private:
     void onEnter() override;
     void onFixedUpdate(double dt) override;
@@ -36,6 +41,7 @@ private:
     cyclone::PlaneCollider mGround;
     std::vector<std::unique_ptr<Box>> mBoxes;
 
+    Session& mSession; // counts each game and box, for the title screen to show
     int mTowerHeight = 4;
     engine::FlyCamera mFlyCamera;
     float mAlpha = 0.0f;

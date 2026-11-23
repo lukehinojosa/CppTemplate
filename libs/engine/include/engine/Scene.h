@@ -19,6 +19,16 @@ namespace engine
     class SceneManager;
     struct GameConfig;
 
+    // How a switch looks: fade to a colour, swap scenes while the screen is covered, then fade back in
+    struct SceneTransition
+    {
+        float fadeOutSeconds = 0.0f;
+        float fadeInSeconds = 0.0f;
+        Color color = BLACK;
+
+        static SceneTransition fade(float seconds, Color color = BLACK) { return SceneTransition{ seconds / 2, seconds / 2, color }; }
+    };
+
     // One screen of a game, such as a title menu, a level, or a pause menu. Add it to the game's SceneManager, which
     // calls these hooks while the scene is on its stack.
     class Scene
@@ -92,6 +102,12 @@ namespace engine
         // Valid once the scene has been added to a SceneManager
         Game& getGame() const { return *mpGame; }
         SceneManager& getScenes() const { return *mpManager; }
+
+        // Shortcuts for the same calls on getScenes(), so a scene can change screens without including SceneManager.h
+        void switchTo(const std::string& name, SceneTransition transition = {}) const;
+        void switchTo(const std::string& name, std::any value, SceneTransition transition = {}) const;
+        void push(const std::string& name, std::any value = {}) const;
+        void pop() const;
         Camera3D& getCamera() const;
         InputSystem& getInput() const;
         AudioManager& getAudio() const;

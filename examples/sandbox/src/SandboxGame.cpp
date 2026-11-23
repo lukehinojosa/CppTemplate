@@ -1,5 +1,7 @@
 #include "SandboxGame.h"
 #include "GameEvents.h"
+#include "shaders/ball.frag.h"
+#include "shaders/ball.vert.h"
 
 #include <algorithm>
 #include <cstdio>
@@ -72,37 +74,6 @@ namespace
     constexpr Vector3 BALL_BOX_CENTER = { -26.0f, 16.0f, -8.0f };
     constexpr float BALL_BOX_HALF_SIZE = 8.0f;
 
-    // One sphere mesh drawn once per ball through instancing, coloured by height
-    const char* const BALL_VERTEX_SHADER = R"(
-in vec3 vertexPosition;
-in vec3 vertexNormal;
-in mat4 instanceTransform;
-uniform mat4 mvp;
-out vec3 fragNormal;
-out float fragHeight;
-void main()
-{
-    vec4 world = instanceTransform * vec4(vertexPosition, 1.0);
-    fragNormal = mat3(instanceTransform) * vertexNormal;
-    fragHeight = world.y;
-    gl_Position = mvp * world;
-}
-)";
-
-    const char* const BALL_FRAGMENT_SHADER = R"(
-in vec3 fragNormal;
-in float fragHeight;
-uniform vec3 sunDirection;
-uniform vec2 heightRange;
-out vec4 finalColor;
-void main()
-{
-    float t = clamp((fragHeight - heightRange.x) / (heightRange.y - heightRange.x), 0.0, 1.0);
-    vec3 base = mix(vec3(0.15, 0.45, 0.95), vec3(1.0, 0.55, 0.15), t);
-    float light = 0.3 + 0.7 * max(dot(normalize(fragNormal), normalize(sunDirection)), 0.0);
-    finalColor = vec4(base * light, 1.0);
-}
-)";
 #endif
 
 #ifdef TEMPLATE_HAS_SOCKETS
@@ -1104,7 +1075,7 @@ void SandboxGame::pollLoopback()
 #ifdef TEMPLATE_HAS_GPU_COMPUTE
 void SandboxGame::initBalls()
 {
-    Shader shader = engine::loadPortableShader(BALL_VERTEX_SHADER, BALL_FRAGMENT_SHADER);
+    Shader shader = engine::loadPortableShader(shaders::BALL_VERT, shaders::BALL_FRAG);
     // raylib 5.5 reads the per-instance matrix attribute from the model matrix slot
     shader.locs[SHADER_LOC_MATRIX_MODEL] = GetShaderLocationAttrib(shader, "instanceTransform");
     mBallSunLocation = GetShaderLocation(shader, "sunDirection");

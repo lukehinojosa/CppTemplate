@@ -25,7 +25,7 @@ Windows 10/11, from the repo folder in File Explorer:
 | `examples/physics2d/` | The 2D physics engine on its own: stacks, a ramp, a chain on joints; click to drop shapes and drag them around |
 | `libs/cyclone/` | Cyclone physics (Millington, *Game Physics Engine Development*) |
 | `libs/cyclone2d/` | The same engine in 2D: particles, rigid bodies with circle, box and convex polygon shapes, joints, friction, and sleeping. Include `<cyclone2d/cyclone2d.h>`. |
-| `libs/engine/` | The game loop and scenes, rendering, lighting, audio, input, animation |
+| `libs/engine/` | The game loop and scenes, rendering, lighting, audio, input, animation; its shaders are in `shaders/` as `.vert` and `.frag` files, which `template_embed_shaders` builds into the target as `shaders::NAME_VERT` and `shaders::NAME_FRAG` |
 | `libs/core/` | Events, components, memory pools, config, timers |
 | `libs/ai/`, `net/`, `gpu/` | Game AI, networking, WebGPU compute (optional) |
 | `libs/vendor/` | Third-party code: raylib, Dear ImGui, rlImGui, FastNoiseLite |

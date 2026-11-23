@@ -18,3 +18,4 @@ add_library(engine STATIC
 target_include_directories(engine PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(engine PUBLIC core cyclone cyclone2d raylib imgui rlImGui PRIVATE FastNoiseLite)
 template_set_warnings(engine)
+template_embed_shaders(engine ${CMAKE_CURRENT_SOURCE_DIR}/shaders)
